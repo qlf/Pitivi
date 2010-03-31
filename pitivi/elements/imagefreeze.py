@@ -154,8 +154,8 @@ class ImageFreeze(gst.Element):
             self.debug("task paused")
 
             self._needsegment = True
-            self.debug("Sending FLUS_STOP event")
             if flags & gst.SEEK_FLAG_FLUSH:
+                self.debug("Sending FLUSH_STOP event")
                 self.srcpad.push_event(gst.event_new_flush_stop())
             self.debug("Restarting our task")
             self.srcpad.start_task(self._our_task)
