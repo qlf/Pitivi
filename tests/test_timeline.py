@@ -21,8 +21,7 @@
 
 import gst
 
-from tests.common import FakeSourceFactory, FakeVideoEffectFactory,\
-     FakeAudioEffectFactory
+from tests.common import FakeSourceFactory
 from pitivi.timeline.timeline import Timeline, TimelineObject, TimelineError, \
         Selection, Link, TimelineEdges, MoveContext, TrimStartContext, \
         TrimEndContext
@@ -856,8 +855,6 @@ class TestTimelineAddFactory(TestCase):
         self.timeline.addTrack(self.video_track2)
 
         self.factory = StubFactory()
-        self.video_effect_factory = FakeVideoEffectFactory()
-        self.audio_effect_factory = FakeAudioEffectFactory()
 
     def tearDown(self):
         del self.audio_stream1
@@ -871,8 +868,6 @@ class TestTimelineAddFactory(TestCase):
         del self.video_track2
         del self.timeline
         del self.factory
-        del self.video_effect_factory
-        del self.audio_effect_factory
         TestCase.tearDown(self)
 
     def testNoStreams(self):
@@ -889,20 +884,6 @@ class TestTimelineAddFactory(TestCase):
     def testVideoOnly(self):
         self.factory.addOutputStream(self.video_stream1)
         self.timeline.addSourceFactory(self.factory)
-        self.failUnlessEqual(len(self.audio_track1.track_objects), 0)
-        self.failUnlessEqual(len(self.audio_track2.track_objects), 0)
-        self.failUnlessEqual(len(self.video_track1.track_objects), 1)
-        self.failUnlessEqual(len(self.video_track2.track_objects), 0)
-
-    def testVideoEffectOnly(self):
-        self.timeline.addEffectFactory(self.video_effect_factory)
-        self.failUnlessEqual(len(self.audio_track1.track_objects), 0)
-        self.failUnlessEqual(len(self.audio_track2.track_objects), 0)
-        self.failUnlessEqual(len(self.video_track1.track_objects), 1)
-        self.failUnlessEqual(len(self.video_track2.track_objects), 0)
-
-    def testAudioEffectOnly(self):
-        self.timeline.addEffectFactory(self.audio_effect_factory)
         self.failUnlessEqual(len(self.audio_track1.track_objects), 0)
         self.failUnlessEqual(len(self.audio_track2.track_objects), 0)
         self.failUnlessEqual(len(self.video_track1.track_objects), 1)
