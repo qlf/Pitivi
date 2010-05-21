@@ -1674,6 +1674,34 @@ class Timeline(Signallable, Loggable):
         self.addTimelineObject(timeline_object)
         return timeline_object
 
+    def addEffectFactory(self, factory):
+        """
+        Creates a TimelineObject for the given EffectFactory and adds it to the timeline.
+
+        @param factory: The EffectFactory to add.
+        @type factory: L{EffectFactory}
+        @raises TimelineError: if C{strict} is True and no exact mapping could be calculated.
+        """
+        self.debug("factory:%r", factory)
+
+        output_streams = factory.getOutputStreams()
+        if not output_streams:
+            raise TimelineError()
+
+        #Figures out the proper track to add the effect to
+        if isinstance (factory, pitivi.factory.operation.VideoEffectFactory):
+            track = self.tracks[0]
+        else:
+            track = self.track[1]
+
+        timeline_object = TimelineObject(factory)
+        track_object = EffectTrackObject(factory, output_streams[0]) #TODO check that
+        track.addTrackObject(track_object)
+        timeline_object.addTrackObject(track_object)
+
+        self.addTimelineObject(timeline_object)
+        return timeline_object
+
     def _getSourceFactoryStreamMap(self, factory):
         # track.stream -> track
         track_stream_to_track_map = dict((track.stream, track)
