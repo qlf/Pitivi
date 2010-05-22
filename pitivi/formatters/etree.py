@@ -20,8 +20,6 @@
 # Free Software Foundation, Inc., 59 Temple Place - Suite 330,
 # Boston, MA 02111-1307, USA.
 
-import re
-
 import gobject
 gobject.threads_init()
 import gst
@@ -31,7 +29,6 @@ from xml.etree.ElementTree import Element, SubElement, tostring, parse
 from pitivi.reflect import qual, namedAny
 from pitivi.factories.base import SourceFactory
 from pitivi.factories.file import FileSourceFactory
-from pitivi.factories.title import TitleSourceFactory
 from pitivi.timeline.track import Track
 from pitivi.timeline.timeline import TimelineObject
 from pitivi.formatters.base import Formatter, FormatterError
@@ -134,8 +131,6 @@ class ElementTreeFormatter(Formatter):
         element = self._saveObjectFactory(source)
         if isinstance(source, FileSourceFactory):
             return self._saveFileSourceFactory(element, source)
-        elif isinstance(source, TitleSourceFactory):
-            return self._saveTitleSourceFactory(element, source)
 
         return element
 
@@ -167,30 +162,12 @@ class ElementTreeFormatter(Formatter):
 
         return element
 
-    def _loadColor(self, str):
-        match = re.match('#(..)(..)(..)(..)$', str)
-        assert match, "couldn't parse saved color %r" % str
-        return tuple(int(x, 16) / 255 for x in match.groups())
-
     def _loadObjectFactory(self, klass, element):
         self.debug("klass:%r, element:%r", klass, element)
-
         # FIXME : we should check if the given ObjectFactory
         # requires a filename !
         filename = element.attrib.get("filename", None)
-
-        if klass == TitleSourceFactory:
-            props = {}
-            props['text'] = element.attrib['text']
-            props['font'], size_str = \
-                element.attrib['font'].rsplit(None, 1)
-            props['text_size'] = int(size_str)
-            props['bg_color'] = self._loadColor(element.attrib["bg_color"])
-            props['fg_color'] = self._loadColor(element.attrib["fg_color"])
-            props['x_alignment'] = float(element.attrib["x_alignment"])
-            props['y_alignment'] = float(element.attrib["y_alignment"])
-            factory = klass(**props)
-        elif filename is not None:
+        if filename is not None:
             if isinstance(filename, unicode):
                 filename = filename.encode("utf-8")
 
@@ -230,21 +207,6 @@ class ElementTreeFormatter(Formatter):
             filename = source.filename
         element.attrib["filename"] = filename
 
-        return element
-
-    def _saveColor(self, color):
-        return '#%02x%02x%02x%02x' % tuple(
-            int(x * 255) for x in (color[0], color[1], color[2], color[3]))
-
-    def _saveTitleSourceFactory(self, element, source):
-        props = source.source_kw
-        element.attrib["text"] = props["text"]
-        element.attrib["font"] = '%s %d' % \
-            (source.source_kw["font"], props["text_size"])
-        element.attrib["bg_color"] = self._saveColor(props["bg_color"])
-        element.attrib["fg_color"] = self._saveColor(props["fg_color"])
-        element.attrib["x_alignment"] = str(props["x_alignment"])
-        element.attrib["y_alignment"] = str(props["y_alignment"])
         return element
 
     def _saveFactoryRef(self, factory):
@@ -671,27 +633,18 @@ class ElementTreeFormatter(Formatter):
             self.emit("new-project-failed", location, e)
             return
 
-        uris = []
-        discover_sources = []
-
-        for source in sources:
-            if isinstance(source, TitleSourceFactory):
-                project.sources.addFactory(source)
-            else:
-                uris.append(source.uri)
-                discover_sources.append(source)
-
+        uris = [source.uri for source in sources]
         discoverer = project.sources.discoverer
         discoverer.connect("discovery-done", self._discovererDiscoveryDoneCb,
-                project, discover_sources, uris, closure)
+                project, sources, uris, closure)
         discoverer.connect("discovery-error", self._discovererDiscoveryErrorCb,
-                project, discover_sources, uris, closure)
+                project, sources, uris, closure)
 
-        if not uris:
+        if not sources:
             self._finishLoadingProject(project)
             return
         # start the rediscovering from the first source
-        source = discover_sources[0]
+        source = sources[0]
         discoverer.addUri(source.uri)
 
     def _findFactoryContextKey(self, old_factory):

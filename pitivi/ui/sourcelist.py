@@ -41,10 +41,8 @@ from pitivi.settings import GlobalSettings
 from pitivi.utils import beautify_length
 from pitivi.ui.common import beautify_factory, factory_name, \
     beautify_stream
-from pitivi.ui.title_edit import TitleEditDialog
 from pitivi.log.loggable import Loggable
 from pitivi.sourcelist import SourceListError
-from pitivi.factories.title import TitleSourceFactory
 
 SHOW_TREEVIEW = 1
 SHOW_ICONVIEW = 2
@@ -198,7 +196,6 @@ class SourceList(gtk.VBox, Loggable):
         self.iconview_scrollwin.add(self.iconview)
         self.iconview.connect("button-press-event", self._iconViewButtonPressEventCb)
         self.iconview.connect("selection-changed", self._viewSelectionChangedCb)
-        self.iconview.connect("item-activated", self._iconViewItemActivated)
         self.iconview.set_orientation(gtk.ORIENTATION_VERTICAL)
         self.iconview.set_text_column(COL_SHORT_TEXT)
         self.iconview.set_pixbuf_column(COL_ICON_LARGE)
@@ -241,7 +238,6 @@ class SourceList(gtk.VBox, Loggable):
         # default pixbufs
         self.audiofilepixbuf = self._getIcon("audio-x-generic", "pitivi-sound.png")
         self.videofilepixbuf = self._getIcon("video-x-generic", "pitivi-video.png")
-        self.titlepixbuf = self._getIcon("font-x-generic", "pitivi-video.png")
 
         # Drag and Drop
         self.drag_dest_set(gtk.DEST_DEFAULT_DROP | gtk.DEST_DEFAULT_MOTION,
@@ -503,10 +499,7 @@ class SourceList(gtk.VBox, Loggable):
                 thumbnail_large = pixbuf.scale_simple(96,
                         desiredheight, gtk.gdk.INTERP_BILINEAR)
         else:
-            if isinstance(factory, TitleSourceFactory):
-                thumbnail = self.titlepixbuf
-                thumbnail_large = self.titlepixbuf
-            elif video:
+            if video:
                 thumbnail = self.videofilepixbuf
                 thumbnail_large = self.videofilepixbuf
             else:
@@ -837,50 +830,25 @@ class SourceList(gtk.VBox, Loggable):
             self._dragX = int(event.x)
             self._dragY = int(event.y)
 
-        if not chain_up:
+        if chain_up:
+            gtk.IconView.do_button_press_event(iconview, event)
+        else:
             iconview.grab_focus()
 
-        return False
+        self._ignoreRelease = chain_up
+
+        return True
 
     def _iconViewButtonReleaseCb(self, iconview, event):
         if event.button == self._dragButton:
             self._dragButton = None
             self._dragSelection = False
+            if (not self._ignoreRelease) and (not self._dragStarted):
+                iconview.unselect_all()
+                path = iconview.get_path_at_pos(int(event.x), int(event.y))
+                if path:
+                    iconview.select_path(path)
         return False
-
-    def _iconViewItemActivated(self, view, path):
-        self._dragButton = None
-        factory = self.storemodel[path][COL_FACTORY]
-
-        if isinstance(factory, TitleSourceFactory):
-            dialog = TitleEditDialog(**factory.source_kw)
-            dialog.window.add_button(gtk.STOCK_APPLY, gtk.RESPONSE_OK)
-            dialog.window.set_default_response(gtk.RESPONSE_OK)
-            response = dialog.run()
-            dialog.destroy()
-
-            if response == gtk.RESPONSE_OK:
-                # Copy attributes from dialog back to factory.
-                props = {}
-
-                for key in factory.source_kw.keys():
-                    props[key] = getattr(dialog, key)
-
-                factory.set(**props)
-                self.storemodel[path][COL_SHORT_TEXT] = dialog.text
-
-                # XXX: Hack hack hack.
-                # The source should probably update the track objects directly.
-
-                ui_tracks = self.app.gui.timeline._canvas.tracks
-                n_children = ui_tracks.get_n_children()
-
-                for n in xrange(n_children):
-                    track = ui_tracks.get_child(n)
-
-                    for source, ui_trackobj in track.widgets.iteritems():
-                        # Force canvas element to update name.
-                        ui_trackobj.element = source
 
     def _textBoxButtonPressEventCb(self, textbox, event):
         if event.button == 3:

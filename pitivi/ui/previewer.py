@@ -40,7 +40,6 @@ from pitivi.settings import GlobalSettings
 from pitivi.ui.zoominterface import Zoomable
 from pitivi.log.loggable import Loggable
 from pitivi.factories.file import PictureFileSourceFactory
-from pitivi.factories.title import TitleSourceFactory
 from pitivi.thumbnailcache import ThumbnailCache
 from pitivi.ui.prefs import PreferencesDialog
 from pitivi.receiver import receiver, handler
@@ -126,7 +125,7 @@ def get_preview_for_object(instance, trackobject):
         if stream_type == stream.AudioStream:
             previewers[key] = RandomAccessAudioPreviewer(instance, factory, stream_)
         elif stream_type == stream.VideoStream:
-            if type(factory) in (TitleSourceFactory, PictureFileSourceFactory):
+            if type(factory) == PictureFileSourceFactory:
                 previewers[key] = StillImagePreviewer(instance, factory, stream_)
             else:
                 previewers[key] = RandomAccessVideoPreviewer(instance, factory, stream_)
@@ -187,30 +186,24 @@ class RandomAccessPreviewer(Previewer):
         Previewer.__init__(self, instance, factory, stream_)
         self._queue = []
 
-        bin = factory.makeBin(stream_)
+        # FIXME:
+        # why doesn't this work?
+        # bin = factory.makeBin(stream_)
+        uri = factory.uri
+        caps = stream_.caps
+        bin = SingleDecodeBin(uri=uri, caps=caps, stream=stream_)
 
         # assume 50 pixel height
         self.theight = 50
         self.waiting_timestamp = None
 
-        self.pipeline = self._pipelineInit(factory, bin)
-        self.pipeline.set_state(gst.STATE_PAUSED)
-
-        instance.connect('project-closed', self._pipelineShutdown)
-        self.project = instance.current
+        self._pipelineInit(factory, bin)
 
     def _pipelineInit(self, factory, bin):
         """Create the pipeline for the preview process. Subclasses should
         override this method and create a pipeline, connecting to callbacks to
         the appropriate signals, and prerolling the pipeline if necessary."""
         raise NotImplementedError
-
-    def _pipelineShutdown(self, instance, project):
-        # Ensure that there aren't any zombie pipelines around; they can cause
-        # deadlocks on exit.
-
-        if project == self.project:
-            self.pipeline.set_state(gst.STATE_NULL)
 
 ## public interface
 
@@ -375,7 +368,7 @@ class RandomAccessVideoPreviewer(RandomAccessPreviewer):
         caps = ("video/x-raw-rgb,height=(int) %d,width=(int) %d" %
             (self.theight, self.twidth + 2))
         filter_ = utils.filter_(caps)
-        pipeline = utils.pipeline({
+        self.videopipeline = utils.pipeline({
             sbin : csp,
             csp : scale,
             scale : filter_,
@@ -383,7 +376,7 @@ class RandomAccessVideoPreviewer(RandomAccessPreviewer):
             sink : None
         })
         sink.connect('thumbnail', self._thumbnailCb)
-        return pipeline
+        self.videopipeline.set_state(gst.STATE_PAUSED)
 
     def _segment_for_time(self, time):
         # quantize thumbnail timestamps to maximum granularity
@@ -395,7 +388,7 @@ class RandomAccessVideoPreviewer(RandomAccessPreviewer):
     def _startThumbnail(self, timestamp):
         RandomAccessPreviewer._startThumbnail(self, timestamp)
         self.log("timestamp : %s", gst.TIME_ARGS(timestamp))
-        self.pipeline.seek(1.0,
+        self.videopipeline.seek(1.0,
             gst.FORMAT_TIME, gst.SEEK_FLAG_FLUSH | gst.SEEK_FLAG_ACCURATE,
             gst.SEEK_TYPE_SET, timestamp,
             gst.SEEK_TYPE_NONE, -1)
@@ -430,14 +423,14 @@ class RandomAccessAudioPreviewer(RandomAccessPreviewer):
 
         self.audioSink = ArraySink()
         conv = gst.element_factory_make("audioconvert")
-        pipeline = utils.pipeline({
+        self.audioPipeline = utils.pipeline({
             sbin : conv,
             conv : self.audioSink,
             self.audioSink : None})
-        bus = pipeline.get_bus()
+        bus = self.audioPipeline.get_bus()
         bus.set_sync_handler(self._bus_message)
         self._audio_cur = None
-        return pipeline
+        self.audioPipeline.set_state(gst.STATE_PAUSED)
 
     def _spacing(self):
         return 0
@@ -460,12 +453,12 @@ class RandomAccessAudioPreviewer(RandomAccessPreviewer):
     def _startThumbnail(self, (timestamp, duration)):
         RandomAccessPreviewer._startThumbnail(self, (timestamp, duration))
         self._audio_cur = timestamp, duration
-        self.pipeline.seek(1.0,
+        self.audioPipeline.seek(1.0,
             gst.FORMAT_TIME,
             gst.SEEK_FLAG_FLUSH | gst.SEEK_FLAG_ACCURATE | gst.SEEK_FLAG_SEGMENT,
             gst.SEEK_TYPE_SET, timestamp,
             gst.SEEK_TYPE_SET, timestamp + duration)
-        self.pipeline.set_state(gst.STATE_PLAYING)
+        self.audioPipeline.set_state(gst.STATE_PLAYING)
 
     def _finishWaveform(self):
         surfaces = []
