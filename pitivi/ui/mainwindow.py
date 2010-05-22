@@ -60,6 +60,8 @@ from pitivi.ui.effectlist import VideoEffectList, AudioEffectList
 from pitivi.ui.common import beautify_factory
 from pitivi.utils import beautify_length
 from pitivi.ui.zoominterface import Zoomable
+from pitivi.ui.title_edit import TitleEditDialog
+from pitivi.factories.title import TitleSourceFactory
 
 if HAVE_GCONF:
     D_G_INTERFACE = "/desktop/gnome/interface"
@@ -293,6 +295,8 @@ class PitiviMainWindow(gtk.Window, Loggable):
             ("Loop", gtk.STOCK_REFRESH, _("Loop"), None, LOOP,
                 self.loop),
             ("Help", None, _("_Help")),
+            ("AddTitle", gtk.STOCK_ADD, _("Add title..."), None, None,
+                self._addTitleCb),
         ]
 
         self.toggleactions = [
@@ -341,7 +345,7 @@ class PitiviMainWindow(gtk.Window, Loggable):
                 "ShowHideMainToolbar", "ShowHideTimelineToolbar", "Library",
                 "Timeline", "Viewer", "FrameForward", "FrameBackward",
                 "SecondForward", "SecondBackward", "EdgeForward",
-                "EdgeBackward", "Preferences"]:
+                "EdgeBackward", "Preferences", "AddTitle"]:
                 action.set_sensitive(True)
             elif action_name in ["NewProject", "SaveProjectAs", "OpenProject"]:
                 if instance.settings.fileSupportEnabled:
@@ -642,6 +646,24 @@ class PitiviMainWindow(gtk.Window, Loggable):
         abt.set_logo_icon_name("pitivi")
         abt.connect("response", self._aboutResponseCb)
         abt.show()
+
+    def _addTitleCb(self, unused_action):
+        dialog = TitleEditDialog()
+        dialog.window.add_button(gtk.STOCK_ADD, gtk.RESPONSE_OK)
+        dialog.window.set_default_response(gtk.RESPONSE_OK)
+        response = dialog.run()
+
+        if response == gtk.RESPONSE_OK:
+            self.app.current.sources.addFactory(TitleSourceFactory(
+                text=dialog.text,
+                text_size=dialog.text_size,
+                font=dialog.font,
+                x_alignment=dialog.x_alignment,
+                y_alignment=dialog.y_alignment,
+                bg_color=dialog.bg_color,
+                fg_color=dialog.fg_color))
+
+        dialog.destroy()
 
     def _undoCb(self, action):
         self.app.action_log.undo()
