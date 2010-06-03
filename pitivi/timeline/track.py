@@ -471,6 +471,7 @@ class TrackObject(Signallable, Loggable):
 
     def setInPoint(self, position, snap=False):
         if self.timeline_object is not None:
+
             self.timeline_object.setInPoint(position, snap)
         else:
             self.setObjectInPoint(position)
@@ -811,8 +812,6 @@ class VideoTransition(Transition):
 
     def _updateOperationPriority(self, priority):
         self.operation.props.priority = 1 + 3 * priority
-        self.debug("Operation  %r priority: %r" ,self.operation,
-                                                  self.operation.props.priority)
 
     def _updateController(self):
         if self.a.stagger > self.b.stagger:
