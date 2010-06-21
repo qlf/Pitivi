@@ -11,7 +11,7 @@ from pitivi.receiver import receiver, handler
 from view import View
 import controller
 from zoominterface import Zoomable
-from pitivi.timeline.track import TrackError
+from pitivi.timeline.track import TrackError, TrackEffect
 from pitivi.timeline.timeline import SELECT, SELECT_ADD, UNSELECT, \
     SELECT_BETWEEN, MoveContext, TrimStartContext, TrimEndContext
 from preview import Preview
@@ -23,7 +23,7 @@ from pitivi.ui.point import Point
 from pitivi.ui.prefs import PreferencesDialog
 from pitivi.settings import GlobalSettings
 from pitivi.stream import AudioStream, VideoStream
-from pitivi.timeline.track import TrackEffect
+from pitivi.ui.effects import Effect
 
 LEFT_SIDE = gtk.gdk.Cursor(gtk.gdk.LEFT_SIDE)
 RIGHT_SIDE = gtk.gdk.Cursor(gtk.gdk.RIGHT_SIDE)
@@ -234,7 +234,7 @@ class TrackObject(View, goocanvas.Group, Zoomable):
                     Zoomable.pixelToNs(pos[0]))
                 timeline.setSelectionToObj(element, SELECT)
 
-    def __init__(self, instance, element, track, timeline):
+    def __init__(self, instance, element, track, timeline, nb_effects = 1):
         goocanvas.Group.__init__(self)
         View.__init__(self)
         Zoomable.__init__(self)
@@ -248,24 +248,21 @@ class TrackObject(View, goocanvas.Group, Zoomable):
             height=self.height,
             line_width=1)
 
-        #FIXME I should find the way we want to effects in the time (It should
-        #be shown on existing track?)
         if not isinstance(element, TrackEffect):
             self.content = Preview(self.app, element)
-        else:
-            w = Effect(element)
-            self.add_child(w)
+        else: #FIXME this should probably handle differently?
+            self.content = Effect(element, nb_effects)
 
         self.name = goocanvas.Text(
             x= NAME_HOFFSET + NAME_PADDING,
-            y= NAME_VOFFSET + NAME_PADDING,
+            y= 0,
             operator = cairo.OPERATOR_ADD,
             alignment=pango.ALIGN_LEFT)
         self.namebg = goocanvas.Rect(
             radius_x = 2,
             radius_y = 2,
             x = NAME_HOFFSET,
-            y = NAME_VOFFSET,
+            y = 0,
             line_width = 0)
 
         self.start_handle = StartHandle(self.app, element, timeline,
@@ -278,9 +275,12 @@ class TrackObject(View, goocanvas.Group, Zoomable):
             line_width = 0.0,
             height=self.height)
 
-        if not isinstance(element, TrackEffect): #FIXME
-            for thing in (self.bg, self.content, self.selection_indicator,
-                self.start_handle, self.end_handle, self.namebg, self.name):
+        if isinstance(element, TrackEffect): #FIXME
+            for thing in (self.bg, self.selection_indicator, self.start_handle, self.end_handle):
+                self.add_child(thing)
+        else:
+            for thing in (self.bg, self.content, self.selection_indicator,\
+                          self.start_handle, self.end_handle, self.namebg, self.name):
                 self.add_child(thing)
 
             for prop, interpolator in element.getInterpolators().itervalues():
@@ -426,61 +426,8 @@ class TrackObject(View, goocanvas.Group, Zoomable):
         if self.expanded:
             if w - NAME_HOFFSET > 0:
                 self.namebg.props.height = self.nameheight + NAME_PADDING2X
-                self.namebg.props.width = min(w - NAME_HOFFSET, 
+                self.namebg.props.width = min(w - NAME_HOFFSET,
                     self.namewidth + NAME_PADDING2X)
                 self.namebg.props.visibility = goocanvas.ITEM_VISIBLE
             else:
                 self.namebg.props.visibility = goocanvas.ITEM_INVISIBLE
-
-class Effect(goocanvas.Rect, Zoomable):
-
-    def __init__(self, element):
-        goocanvas.Rect.__init__(self)
-        Zoomable.__init__(self)
-        self.props.fill_color = "blue"
-        self.props.stroke_color = "black"
-        self.set_simple_transform(0, -LAYER_SPACING + 3, 1.0, 0)
-        self.props.height = LAYER_SPACING - 6
-        self.props.pointer_events = goocanvas.EVENTS_NONE
-        self.props.radius_x = 2
-        self.props.radius_y = 2
-        self.props.y = 0 #We keep the effect up
-        self.element = element
-
-    def _setEffect(self):
-        if self.element:
-            self._updateAll()
-
-    def _updateAll(self):
-        element = self.element
-        start = element.start
-        duration = element.factory.duration
-        self._updateStart(element, start)
-        self._updateDuration(element, duration)
-        self._updatePriority(element, duration)
-
-    element = receiver(_setEffect)
-
-    @handler(element, "start-changed")
-    def _updateStart(self, element, start):
-        if self.element.timeline_object is not None:
-            element.setStart(start, True)
-            track_duration = element.timeline_object.timeline.getEffectTrack(element.factory).duration
-            x = self.nsToPixel(start)
-            self.element.setDuration(track_duration - start, True)
-
-    @handler(element, "duration-changed")
-    def _updateDuration(self, element, duration):
-        width = max(0, self.nsToPixel(duration) - self.props.x)
-        if width == 0:
-            self.props.visibility = goocanvas.ITEM_INVISIBLE
-        else:
-            self.props.visibility = goocanvas.ITEM_VISIBLE
-        self.props.width = width
-
-    @handler(element, "priority-changed")
-    def _updatePriority(self, transition, priority):
-        self.props.y = 0
-
-    def zoomChanged(self):
-        self._updateAll()

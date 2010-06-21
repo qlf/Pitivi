@@ -35,6 +35,8 @@ from pitivi.ui.common import TRACK_SPACING, unpack_cairo_pattern, \
         LAYER_HEIGHT_EXPANDED, LAYER_SPACING
 from pitivi.ui.controller import Controller
 from pitivi.ui.curve import KW_LABEL_Y_OVERFLOW
+from pitivi.ui.effects import EFFECT_HEIGHT
+from pitivi.timeline.track import TrackEffect
 
 # cursors to be used for resizing objects
 ARROW = gtk.gdk.Cursor(gtk.gdk.ARROW)
@@ -83,6 +85,7 @@ class TimelineCanvas(goocanvas.Canvas, Zoomable, Loggable):
         self.app = instance
         self._selected_sources = []
         self._tracks = []
+        self._effects = []
         self._height = 0
         self._position = 0
 
@@ -326,10 +329,29 @@ class TimelineCanvas(goocanvas.Canvas, Zoomable, Loggable):
         track.remove()
         self.regroupTracks()
 
+    @handler(timeline, "timeline-object-added")
+    def _effectAdded(self, unused_timeline, timeline_object):
+        if isinstance (timeline_object.track_objects[0], TrackEffect):
+            self._effects.append(timeline_object.track_objects[0])
+        self.regroupTracks()
+
+    @handler(timeline, "timeline-object-removed")
+    def _effectRemoved(self, timeline_object, unused_timeline):
+        if isinstance (unused_timeline.track_objects[0], TrackEffect):
+            self._effects.remove(unused_timeline.track_objects[0])
+        self.regroupTracks()
+
     def regroupTracks(self):
         height = 0
         for i, track in enumerate(self._tracks):
+            #print "Track: %s, %s " %(track, self._effects)
+            for i in self._effects:
+                height += EFFECT_HEIGHT + TRACK_SPACING
             track.set_simple_transform(0, height, 1, 0)
             height += track.height + TRACK_SPACING
+        #for i in self._effects:
+        #    track.set_simple_transform(0, EFFECT_HEIGHT, 1, 0)
+        #    height += EFFECT_HEIGHT
+
         self._height = height
         self._request_size()

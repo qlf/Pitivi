@@ -32,6 +32,8 @@ from pitivi.utils import start_insort_right, infinity, getPreviousObject, \
         getNextObject
 from pitivi.timeline.gap import Gap, SmallestGapsFinder, invalid_gap
 
+import pdb
+
 # Selection modes
 SELECT = 0
 """Set the selection to the given set."""
@@ -1692,6 +1694,7 @@ class Timeline(Signallable, Loggable):
 
         output_stream = factory.getOutputStreams()
         if not output_stream:
+            pdb.set_trace()
             raise TimelineError()
         output_stream = output_stream[0]
 
