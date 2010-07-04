@@ -40,7 +40,7 @@ from pitivi.stream import VideoStream, AudioStream, TextStream, \
 from pitivi.settings import GlobalSettings
 from pitivi.utils import beautify_length
 from pitivi.ui.common import beautify_factory, factory_name, \
-    beautify_stream
+    beautify_stream, PADDING
 from pitivi.log.loggable import Loggable
 from pitivi.sourcelist import SourceListError
 
@@ -177,7 +177,7 @@ class SourceList(gtk.VBox, Loggable):
         namecol.set_expand(True)
         namecol.set_spacing(5)
         namecol.set_sizing(gtk.TREE_VIEW_COLUMN_GROW_ONLY)
-        namecol.set_min_width(150)
+        namecol.set_min_width(120)
         txtcell = gtk.CellRendererText()
         txtcell.set_property("ellipsize", pango.ELLIPSIZE_END)
         namecol.pack_start(txtcell)
@@ -209,12 +209,12 @@ class SourceList(gtk.VBox, Loggable):
         textbox.show()
 
         txtlabel = gtk.Label()
-        txtlabel.set_padding(10, 10)
+        txtlabel.set_padding(PADDING, PADDING)
         txtlabel.set_line_wrap(True)
         txtlabel.set_line_wrap_mode(pango.WRAP_WORD)
         txtlabel.set_justify(gtk.JUSTIFY_CENTER)
         txtlabel.set_markup(
-            _("<span size='x-large'>Import your clips by dragging them here or "
+            _("<span size='large'>Import your clips by dragging them here or "
               "by using the buttons above.</span>"))
         textbox.add(txtlabel)
         txtlabel.show()
