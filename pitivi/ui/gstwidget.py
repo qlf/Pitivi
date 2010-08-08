@@ -39,7 +39,7 @@ def get_widget_propvalue(prop, widget):
     if (type_name == 'gchararray'):
         return widget.get_text()
     if (type_name in ['guint64', 'gint64', 'gint', 'gulong']):
-        return widget.get_value_as_int()
+        return int(widget.get_value())
     if (type_name in ['gfloat', 'gdouble']):
         return widget.get_value()
     if (type_name in ['gboolean']):

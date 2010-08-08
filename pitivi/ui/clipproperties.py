@@ -51,13 +51,14 @@ class ClipProperties(gtk.VBox, Loggable):
     Widget for configuring clips properties
     """
 
-    def __init__(self, instance, uiman):
+    def __init__(self, instance):
         gtk.VBox.__init__(self)
         Loggable.__init__(self)
 
         self.app = instance
         self.settings = instance.settings
         self.project = None
+        self.label = gtk.Label(_("Clip Properties"))
 
         self.effect_properties_handling = EffectsPropertiesHandling(instance.action_log)
         self.effect_expander = EffectProperties(instance,

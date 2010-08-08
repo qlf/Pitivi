@@ -110,6 +110,7 @@ class SourceList(gtk.VBox, Loggable):
 
         self.app = instance
         self.settings = instance.settings
+        self.label = gtk.Label(_("Media Library"))
 
         # Store
         # icon, infotext, objectfactory, uri, length

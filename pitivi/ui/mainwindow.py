@@ -44,7 +44,7 @@ from gettext import gettext as _
 from pitivi.log.loggable import Loggable
 
 from pitivi.ui.timeline import Timeline
-from pitivi.ui.basetabs import BaseTabs
+from pitivi.ui.basetabs import NotebookManager
 from pitivi.ui.viewer import PitiviViewer
 from pitivi.configure import pitivi_version, APPNAME, get_pixmap_dir, \
      get_global_pixmap_dir, LIBDIR
@@ -55,9 +55,6 @@ from pitivi.settings import GlobalSettings
 from pitivi.receiver import receiver, handler
 import pitivi.formatters.format as formatter
 from pitivi.sourcelist import SourceListError
-from pitivi.ui.sourcelist import SourceList
-from pitivi.ui.effectlist import EffectList
-from pitivi.ui.clipproperties import ClipProperties
 from pitivi.ui.common import beautify_factory
 from pitivi.utils import beautify_length
 from pitivi.ui.zoominterface import Zoomable
@@ -125,6 +122,76 @@ GlobalSettings.addConfigOption('elementSettingsDialogHeight',
     key='element-settings-dialog-height',
     default = 460)
 
+GlobalSettings.addConfigSection('clip-properties')
+GlobalSettings.addConfigOption('clipPropertiesHasWindow',
+                               section='clip-properties',
+                               key='clip-properties-has-window',
+                               default=False)
+GlobalSettings.addConfigOption('clipPropertiesWindowHeight',
+                               section='clip-properties',
+                               key='clip-properties-window-height',
+                               default=400)
+GlobalSettings.addConfigOption('clipPropertiesWindowWidth',
+                               section='clip-properties',
+                               key='clip-properties-window-width',
+                               default=400)
+GlobalSettings.addConfigOption('clipPropertiesWindowPositionX',
+                               section='clip-properties',
+                               key='clip-properties-window-positionX',
+                               default=0)
+GlobalSettings.addConfigOption('clipPropertiesWindowPositionY',
+                               section='clip-properties',
+                               key='clip-properties-window-positionY',
+                               default=0)
+GlobalSettings.addConfigOption('clipPropertiesGroupedWithOther',
+                               section='clip-properties',
+                               key='clip-properties-grouped-with-other',
+                               default=False)
+
+GlobalSettings.addConfigSection('effect-library')
+GlobalSettings.addConfigOption('effectLibraryHasWindow',
+                               section='effect-library',
+                               key='effect-library-has-window',
+                               default=False)
+GlobalSettings.addConfigOption('effectLibraryWindowHeight',
+                               section='effect-library',
+                               key='effect-library-window-height',
+                               default=400)
+GlobalSettings.addConfigOption('effectLibraryWindowWidth',
+                               section='effect-library',
+                               key='effect-library-window-width',
+                               default=400)
+GlobalSettings.addConfigOption('effectLibraryWindowPositionX',
+                               section='effect-library',
+                               key='effect-library-window-positionX',
+                               default=0)
+GlobalSettings.addConfigOption('effectLibraryWindowPositionY',
+                               section='effect-library',
+                               key='effect-library-window-positionY',
+                               default=0)
+
+GlobalSettings.addConfigSection('media-library')
+GlobalSettings.addConfigOption('mediaLibraryHasWindow',
+                               section='media-library',
+                               key='media-library-has-window',
+                               default=False)
+GlobalSettings.addConfigOption('mediaLibraryWindowHeight',
+                               section='media-library',
+                               key='media-library-window-height',
+                               default=400)
+GlobalSettings.addConfigOption('mediaLibraryWindowWidth',
+                               section='media-library',
+                               key='media-library-window-width',
+                               default=400)
+GlobalSettings.addConfigOption('mediaLibraryWindowPositionX',
+                               section='media-library',
+                               key='media-library-window-positionX',
+                               default=0)
+GlobalSettings.addConfigOption('mediaLibraryWindowPositionY',
+                               section='media-library',
+                               key='media-library-window-positionY',
+                               default=0)
+
 def supported(info):
     return formatter.can_handle_location(info[1])
 
@@ -133,7 +200,7 @@ def create_stock_icons():
     gtk.stock_add([
             ('pitivi-render', _('Render'), 0, 0, 'pitivi'),
             ('pitivi-split', _('Split'), 0, 0, 'pitivi'),
-            ('pitivi-unlink', _('Unlink'), 0, 0, 'pitivi'),
+                ('pitivi-unlink', _('Unlink'), 0, 0, 'pitivi'),
             # Translators: This is an action, the title of a button
             ('pitivi-link', _('Link'), 0, 0, 'pitivi'),
             ('pitivi-ungroup', _('Ungroup'), 0, 0, 'pitivi'),
@@ -404,34 +471,12 @@ class PitiviMainWindow(gtk.Window, Loggable):
         self.mainhpaned = gtk.HPaned()
         vpaned.pack1(self.mainhpaned, resize=True, shrink=False)
 
-        self.secondhpaned = gtk.HPaned()
-        self.mainhpaned.pack1(self.secondhpaned, resize=True, shrink=False)
-        self.secondhpaned.show()
         self.mainhpaned.show()
 
-        self.projecttabs = BaseTabs(instance)
-
-        self.sourcelist = SourceList(instance, self.uimanager)
-        self.projecttabs.append_page(self.sourcelist, gtk.Label(_("Media Library")))
+        self.notebooks_manager = NotebookManager(instance, self.uimanager, self.project)
         self._connectToSourceList()
-        self.sourcelist.show()
-
-        self.effectlist = EffectList(instance, self.uimanager)
-        self.projecttabs.append_page(self.effectlist, gtk.Label(_("Effect Library")))
-        self.effectlist.show()
-
-        self.secondhpaned.pack1(self.projecttabs, resize=True, shrink=False)
-        self.projecttabs.show()
-
-        #Clips properties
-        self.propertiestabs = BaseTabs(instance, True)
-        self.clipconfig = ClipProperties(instance, self.uimanager)
-        self.clipconfig.project = self.project
-        self.propertiestabs.append_page(self.clipconfig, gtk.Label(_("Clip Properties")))
-        self.clipconfig.show()
-
-        self.secondhpaned.pack2(self.propertiestabs, resize= True, shrink=False)
-        self.propertiestabs.show()
+        self.mainhpaned.pack1(self.notebooks_manager, resize=False, shrink=False)
+        self.notebooks_manager.show_all()
 
         # Viewer
         self.viewer = PitiviViewer()
@@ -446,12 +491,12 @@ class PitiviMainWindow(gtk.Window, Loggable):
 
         # window and pane position defaults
         self.mainhpaned = self.mainhpaned
-        self.hpaned = self.secondhpaned
+        self.hpaned = self.notebooks_manager
         self.vpaned = vpaned
         height = -1
         width = -1
-        if self.settings.mainWindowHPanePosition:
-            self.hpaned.set_position(self.settings.mainWindowHPanePosition)
+        #if self.settings.mainWindowHPanePosition:
+        #    self.hpaned.set_position(self.settings.mainWindowHPanePosition)
         if self.settings.mainWindowMainHPanePosition:
             self.mainhpaned.set_position(self.settings.mainWindowMainHPanePosition)
         if self.settings.mainWindowVPanePosition:
@@ -492,7 +537,7 @@ class PitiviMainWindow(gtk.Window, Loggable):
         os.environ["PULSE_PROP_application.icon_name"] = "pitivi"
 
     def _connectToSourceList(self):
-        self.sourcelist.connect('play', self._sourceListPlayCb)
+        self.notebooks_manager.sourcelist.connect('play', self._sourceListPlayCb)
 
     def toggleFullScreen(self):
         """ Toggle the fullscreen mode of the application """
@@ -570,7 +615,7 @@ class PitiviMainWindow(gtk.Window, Loggable):
 
     def _saveWindowSettings(self):
         self.settings.mainWindowFullScreen = self.is_fullscreen
-        self.settings.mainWindowHPanePosition = self.hpaned.get_position()
+        #self.settings.mainWindowHPanePosition = self.hpaned.get_position()
         self.settings.mainWindowMainHPanePosition = self.mainhpaned.get_position()
         self.settings.mainWindowVPanePosition = self.vpaned.get_position()
         mtb = self.actiongroup.get_action("ShowHideMainToolbar")
@@ -1009,7 +1054,7 @@ class PitiviMainWindow(gtk.Window, Loggable):
             self.project_timeline = self.project.timeline
             if self.timeline:
                 self.timeline.project = self.project
-                self.clipconfig.project = self.project
+                self.notebooks_manager.clipconfig.project = self.project
 
     project = receiver(_setProject)
 

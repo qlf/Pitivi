@@ -20,7 +20,82 @@
 # Boston, MA 02111-1307, USA.
 
 import gtk
+
 from pitivi.ui.common import SPACING
+from pitivi.ui.sourcelist import SourceList
+from pitivi.ui.effectlist import EffectList
+from pitivi.ui.clipproperties import ClipProperties
+
+class NotebookManager(gtk.HBox):
+    def __init__(self, app, uimanager, project):
+        gtk.HBox.__init__(self)
+
+        #Notebooks
+        self.left_notebook = BaseTabs(app, True)
+        self.right_notebook = BaseTabs(app, True)
+
+        #Tabs
+        self.sourcelist = SourceList(app, uimanager)
+        self.effectlist = EffectList(app)
+        self.clipconfig = ClipProperties(app)
+        self.clipconfig.project = project
+
+        self.wins = []
+        self.hpaned = None
+
+        windows, left_tabs, right_tabs = self._getSettings(app)
+
+        self._updateUi(windows, left_tabs, right_tabs)
+
+    def _getSettings(self, app):
+        windows = []
+        left_tabs = []
+        right_tabs = []
+        if not app.settings.effectLibraryHasWindow:
+            left_tabs.append(self.effectlist)
+        if not app.settings.mediaLibraryHasWindow:
+            left_tabs.append(self.sourcelist)
+        if not app.settings.clipPropertiesHasWindow:
+            if not app.settings.clipPropertiesGroupedWithOther:
+                right_tabs.append(self.clipconfig)
+            else:
+                left_tabs.append(self.clipconfig)
+
+        return windows, left_tabs, right_tabs
+
+    def _updateUi(self, windows, left_tabs, right_tabs):
+        for window in windows:
+            self._createWindow(window)
+        if left_tabs and right_tabs:
+            self._createHPaned(left_tabs, right_tabs)
+        else:
+            left_tabs.extend(right_tabs)
+            self._addTabs(left_tabs)
+
+    def _createWindow(self, tabs):
+        pass
+
+    def _createHPaned(self, left_tabs, right_tabs):
+        if not self.hpaned:
+            self.hpaned = gtk.HPaned()
+
+        for tab in left_tabs:
+            self.left_notebook.append_page(tab,
+                                           tab.label)
+        for tab in right_tabs:
+            self.right_notebook.append_page(tab,
+                                            tab.label)
+
+        self.hpaned.pack1(self.left_notebook, resize=False, shrink=False)
+        self.hpaned.pack2(self.right_notebook, resize=False, shrink=False)
+        self.pack_start(self.hpaned)
+
+    def _addTabs(self, tabs):
+        for tab in tabs:
+            self.left_notebook.append_page(tab,
+                                           tab.label)
+
+        self.pack_start(self.left_notebook)
 
 class BaseTabs(gtk.Notebook):
     def __init__(self, app, hide_hpaned=False):
@@ -62,7 +137,7 @@ class BaseTabs(gtk.Notebook):
         self.child_set_property(child, "detachable", True)
 
         if self._hide_hpaned:
-            self._showSecondHpanedInMainWindow()
+            self._showHpanedInMainWindow()
 
     def _createWindowCb(self, from_notebook, child, x, y):
         original_position = self.child_get_property(child, "position")
@@ -73,30 +148,10 @@ class BaseTabs(gtk.Notebook):
         window.connect("destroy", self._detachedComponentWindowDestroyCb,
                 child, original_position, label)
         notebook = gtk.Notebook()
-        notebook.props.show_tabs = False
         window.add(notebook)
 
         window.show_all()
         # set_uposition is deprecated but what should I use instead?
         window.set_uposition(x, y)
 
-        if self._hide_hpaned:
-            self._hideSecondHpanedInMainWindow()
-
         return notebook
-
-    def _hideSecondHpanedInMainWindow(self):
-        self.app.gui.mainhpaned.remove(self.app.gui.secondhpaned)
-        self.app.gui.secondhpaned.remove(self.app.gui.projecttabs)
-        self.app.gui.secondhpaned.remove(self.app.gui.propertiestabs)
-        self.app.gui.mainhpaned.pack1(self.app.gui.projecttabs, resize= True,
-                                      shrink=False)
-
-    def _showSecondHpanedInMainWindow(self):
-        self.app.gui.mainhpaned.remove(self.app.gui.projecttabs)
-        self.app.gui.secondhpaned.pack1(self.app.gui.projecttabs,
-                                        resize= True, shrink=False)
-        self.app.gui.secondhpaned.pack2(self.app.gui.propertiestabs,
-                                        resize= True, shrink=False)
-        self.app.gui.mainhpaned.pack1(self.app.gui.secondhpaned,
-                                      resize= True, shrink=False)
