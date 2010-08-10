@@ -127,7 +127,7 @@ class TestProjectManager(TestCase):
 
             def _loadProject(self, location, project=None):
                 raise FormatterError()
-        self.manager._getFormatterForUri = lambda uri: FailFormatter()
+        self.manager._getFormatterForUri = lambda uri: FailFormatter([])
 
         uri = "file:///Untitled.xptv"
         self.manager.loadProject(uri)
@@ -164,7 +164,7 @@ class TestProjectManager(TestCase):
 
             def _fillTimeline(self):
                 pass
-        self.manager._getFormatterForUri = lambda uri: MissingUriFormatter()
+        self.manager._getFormatterForUri = lambda uri: MissingUriFormatter([])
 
         uri = "file:///Untitled.xptv"
         self.manager.loadProject(uri)
@@ -199,7 +199,7 @@ class TestProjectManager(TestCase):
 
             def _fillTimeline(self):
                 pass
-        self.manager._getFormatterForUri = lambda uri: EmptyFormatter()
+        self.manager._getFormatterForUri = lambda uri: EmptyFormatter([])
 
         uri = "file:///Untitled.xptv"
         self.manager.loadProject(uri)
