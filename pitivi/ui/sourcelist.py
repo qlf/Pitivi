@@ -1,4 +1,4 @@
-## PiTiVi , Non-linear video editor
+# PiTiVi , Non-linear video editor
 #
 #       ui/sourcelist.py
 #
@@ -40,7 +40,7 @@ from pitivi.stream import VideoStream, AudioStream, TextStream, \
 from pitivi.settings import GlobalSettings
 from pitivi.utils import beautify_length
 from pitivi.ui.common import beautify_factory, factory_name, \
-    beautify_stream, PADDING
+    beautify_stream
 from pitivi.log.loggable import Loggable
 from pitivi.sourcelist import SourceListError
 
@@ -93,7 +93,7 @@ ui = '''
 </ui>
 '''
 
-INVISIBLE = gtk.gdk.pixbuf_new_from_file(os.path.join(get_pixmap_dir(),
+INVISIBLE = gtk.gdk.pixbuf_new_from_file(os.path.join(get_pixmap_dir(), 
     "invisible.png"))
 
 class SourceList(gtk.VBox, Loggable):
@@ -177,7 +177,7 @@ class SourceList(gtk.VBox, Loggable):
         namecol.set_expand(True)
         namecol.set_spacing(5)
         namecol.set_sizing(gtk.TREE_VIEW_COLUMN_GROW_ONLY)
-        namecol.set_min_width(120)
+        namecol.set_min_width(150)
         txtcell = gtk.CellRendererText()
         txtcell.set_property("ellipsize", pango.ELLIPSIZE_END)
         namecol.pack_start(txtcell)
@@ -202,25 +202,22 @@ class SourceList(gtk.VBox, Loggable):
         self.iconview.set_selection_mode(gtk.SELECTION_MULTIPLE)
         self.iconview.set_item_width(106)
 
-        # Explanatory message label
-        textbox = gtk.EventBox()
-        textbox.connect("button-press-event", self._textBoxButtonPressEventCb)
-        textbox.modify_bg(gtk.STATE_NORMAL, gtk.gdk.color_parse('white'))
-        textbox.show()
+        # Explanatory message InfoBar
+        info_bar = gtk.InfoBar()
+        info_bar.show()
 
         txtlabel = gtk.Label()
-        txtlabel.set_padding(PADDING, PADDING)
+        txtlabel.set_padding(10, 10)
         txtlabel.set_line_wrap(True)
         txtlabel.set_line_wrap_mode(pango.WRAP_WORD)
         txtlabel.set_justify(gtk.JUSTIFY_CENTER)
         txtlabel.set_markup(
-            _("<span size='large'>Import your clips by dragging them here or "
+            _("<span>Import your clips by dragging them here or "
               "by using the buttons above.</span>"))
-        textbox.add(txtlabel)
+        info_bar.add(txtlabel)
         txtlabel.show()
         self.txtlabel = txtlabel
-
-        self.textbox = textbox
+        self.info_bar = info_bar
 
         self.infostub = InfoStub()
         self.infostub.connect("remove-me", self._removeInfoStub)
@@ -276,7 +273,7 @@ class SourceList(gtk.VBox, Loggable):
                 _("Import folder of clips to use"), self._importSourcesFolderCb),
         )
 
-        # only available when selection is non-empty
+        # only available when selection is non-empty 
         selection_actions = (
             ("RemoveSources", gtk.STOCK_DELETE,
                 _("_Remove from project"), "<Control>Delete", None,
@@ -327,13 +324,14 @@ class SourceList(gtk.VBox, Loggable):
         seperator.show()
 
         # add all child widgets
-        self.pack_start(self.textbox, expand=True, fill=True)
+        self.pack_start(self.info_bar, expand=False, fill=False)
         self.pack_start(self.iconview_scrollwin)
         self.pack_start(self.treeview_scrollwin)
 
         # display the help text
         self.showing_helptext = None
         self.clip_view = self.settings.lastClipView
+        self._displayClipView()
         self._displayHelpText()
 
     def _importSourcesCb(self, unused_action):
@@ -393,7 +391,7 @@ class SourceList(gtk.VBox, Loggable):
 
 
     ## Explanatory message methods
-
+    
     def _setClipView(self, show):
         """ Set which clip view to use when sourcelist is showing clips. If
         none is given, the current one is used. Show: one of SHOW_TREEVIEW or
@@ -419,7 +417,7 @@ class SourceList(gtk.VBox, Loggable):
 
         # first hide all the child widgets
         self.showing_helptext = False
-        self.textbox.hide()
+        self.info_bar.hide()
         self.treeview_scrollwin.hide()
         self.iconview_scrollwin.hide()
 
@@ -436,10 +434,7 @@ class SourceList(gtk.VBox, Loggable):
 
     def _displayHelpText(self):
         """Hides the current clip view and displays the help text"""
-        self.textbox.show()
-        self.iconview_scrollwin.hide()
-        self.treeview_scrollwin.hide()
-        self.showing_helptext = True
+        self.info_bar.show()
 
     def showImportSourcesDialog(self, select_folders=False):
         """Pop up the "Import Sources" dialog box"""
@@ -742,7 +737,7 @@ class SourceList(gtk.VBox, Loggable):
 
             self._dragStarted = False
             self._dragSelection = False
-            self._dragButton = event.button
+            self._dragButton = event.button 
             self._dragX = int(event.x)
             self._dragY = int(event.y)
 
@@ -850,10 +845,6 @@ class SourceList(gtk.VBox, Loggable):
                     iconview.select_path(path)
         return False
 
-    def _textBoxButtonPressEventCb(self, textbox, event):
-        if event.button == 3:
-            self._viewShowPopup(None, event)
-
     def _newProjectCreatedCb(self, app, project):
         # clear the storemodel
         self.storemodel.clear()
@@ -936,7 +927,7 @@ class SourceList(gtk.VBox, Loggable):
         return paths
 
     def getSelectedItems(self):
-        return [self.storemodel[path][COL_URI]
+        return [self.storemodel[path][COL_URI] 
             for path in self.getSelectedPaths()]
 
     def _dndDataGetCb(self, unused_widget, context, selection,
