@@ -204,7 +204,6 @@ class SourceList(gtk.VBox, Loggable):
 
         # Explanatory message InfoBar
         info_bar = gtk.InfoBar()
-        info_bar.show()
 
         txtlabel = gtk.Label()
         txtlabel.set_padding(10, 10)
@@ -216,7 +215,6 @@ class SourceList(gtk.VBox, Loggable):
               "by using the buttons above.</span>"))
         info_bar.add(txtlabel)
         txtlabel.show()
-        self.txtlabel = txtlabel
         self.info_bar = info_bar
 
         self.infostub = InfoStub()
@@ -435,6 +433,10 @@ class SourceList(gtk.VBox, Loggable):
     def _displayHelpText(self):
         """Hides the current clip view and displays the help text"""
         self.info_bar.show()
+        children = self.info_bar.get_children()
+        #FIXME: Why does the no-show-all not work?
+        children[0].hide()
+        children[1].hide()
 
     def showImportSourcesDialog(self, select_folders=False):
         """Pop up the "Import Sources" dialog box"""
