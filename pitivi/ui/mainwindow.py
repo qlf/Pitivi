@@ -137,11 +137,11 @@ GlobalSettings.addConfigOption('clipPropertiesWindowWidth',
                                default=400)
 GlobalSettings.addConfigOption('clipPropertiesWindowPositionX',
                                section='clip-properties',
-                               key='clip-properties-window-positionX',
+                               key='clip-properties-x-window-position',
                                default=0)
 GlobalSettings.addConfigOption('clipPropertiesWindowPositionY',
                                section='clip-properties',
-                               key='clip-properties-window-positionY',
+                               key='clip-properties-y-window-position',
                                default=0)
 GlobalSettings.addConfigOption('clipPropertiesGroupedWithOther',
                                section='clip-properties',
@@ -161,13 +161,13 @@ GlobalSettings.addConfigOption('effectLibraryWindowWidth',
                                section='effect-library',
                                key='effect-library-window-width',
                                default=400)
-GlobalSettings.addConfigOption('effectLibraryWindowPositionX',
+GlobalSettings.addConfigOption('effectLibraryWindowPosition',
                                section='effect-library',
-                               key='effect-library-window-positionX',
+                               key='effect-library-x-window-position',
                                default=0)
 GlobalSettings.addConfigOption('effectLibraryWindowPositionY',
                                section='effect-library',
-                               key='effect-library-window-positionY',
+                               key='effect-library-y-window-position',
                                default=0)
 
 GlobalSettings.addConfigSection('media-library')
@@ -185,11 +185,11 @@ GlobalSettings.addConfigOption('mediaLibraryWindowWidth',
                                default=400)
 GlobalSettings.addConfigOption('mediaLibraryWindowPositionX',
                                section='media-library',
-                               key='media-library-window-positionX',
+                               key='media-library-x-window-position',
                                default=0)
 GlobalSettings.addConfigOption('mediaLibraryWindowPositionY',
                                section='media-library',
-                               key='media-library-window-positionY',
+                               key='media-library-y-window-position',
                                default=0)
 
 def supported(info):

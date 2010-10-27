@@ -30,9 +30,13 @@ class NotebookManager(gtk.HBox):
     def __init__(self, app, uimanager, project):
         gtk.HBox.__init__(self)
 
-        #Notebooks
-        self.left_notebook = BaseTabs(app, True)
-        self.right_notebook = BaseTabs(app, True)
+        self._app = app
+
+        self.left_notebook = Notebook(app, True)
+        self.right_notebook = Notebook(app, True)
+        self.windows = []
+        self._left_tabs = []
+        self.right_tabs = []
 
         #Tabs
         self.sourcelist = SourceList(app, uimanager)
@@ -40,46 +44,64 @@ class NotebookManager(gtk.HBox):
         self.clipconfig = ClipProperties(app)
         self.clipconfig.project = project
 
-        self.wins = []
         self.hpaned = None
+        self._setAll()
 
-        windows, left_tabs, right_tabs = self._getSettings(app)
 
-        self._updateUi(windows, left_tabs, right_tabs)
+        self._updateUi()
 
-    def _getSettings(self, app):
-        windows = []
-        left_tabs = []
-        right_tabs = []
-        if not app.settings.effectLibraryHasWindow:
-            left_tabs.append(self.effectlist)
-        if not app.settings.mediaLibraryHasWindow:
-            left_tabs.append(self.sourcelist)
-        if not app.settings.clipPropertiesHasWindow:
-            if not app.settings.clipPropertiesGroupedWithOther:
-                right_tabs.append(self.clipconfig)
-            else:
-                left_tabs.append(self.clipconfig)
 
-        return windows, left_tabs, right_tabs
-
-    def _updateUi(self, windows, left_tabs, right_tabs):
-        for window in windows:
-            self._createWindow(window)
-        if left_tabs and right_tabs:
-            self._createHPaned(left_tabs, right_tabs)
+    def _setAll(self):
+        if not self._app.settings.effectLibraryHasWindow:
+            self._left_tabs.append(self.effectlist)
         else:
-            left_tabs.extend(right_tabs)
-            self._addTabs(left_tabs)
+            self._createWindow(self.effectlist)
+
+        if not self._app.settings.mediaLibraryHasWindow:
+            self._left_tabs.append(self.sourcelist)
+        else:
+            self._createWindow(self.sourcelist)
+
+        if not self._app.settings.clipPropertiesHasWindow:
+            if not self._app.settings.clipPropertiesGroupedWithOther:
+                self.right_tabs.append(self.clipconfig)
+            else:
+                self._left_tabs.append(self.clipconfig)
+        else:
+            self._createWindow(self.clipconfig)
+
+    def _updateUi(self):
+        for window in self.windows:
+            #TODO 
+            pass
+        if self._left_tabs and self.right_tabs:
+            self._createHPaned(self._left_tabs, self.right_tabs)
+        else:
+            self._left_tabs.extend(self.right_tabs)
+            self._addTabs(self._left_tabs)
 
     def _createWindow(self, tabs):
-        pass
+        original_position = self.child_get_property("position")
+        label = self.child_get_property(child, "tab-label")
+        window = gtk.Window()
+        window.set_title(label)
+        window.set_default_size(600, 400)
+        window.connect("destroy", self._detachedComponentWindowDestroyCb,
+                child, original_position, label)
+        notebook = gtk.Notebook()
+        window.add(notebook)
 
-    def _createHPaned(self, left_tabs, right_tabs):
+        window.show_all()
+        # set_uposition is deprecated but what should I use instead?
+        window.set_uposition(x, y)
+
+        return notebook
+
+    def _createHPaned(self, _left_tabs, right_tabs):
         if not self.hpaned:
             self.hpaned = gtk.HPaned()
 
-        for tab in left_tabs:
+        for tab in _left_tabs:
             self.left_notebook.append_page(tab,
                                            tab.label)
         for tab in right_tabs:
@@ -97,7 +119,7 @@ class NotebookManager(gtk.HBox):
 
         self.pack_start(self.left_notebook)
 
-class BaseTabs(gtk.Notebook):
+class Notebook(gtk.Notebook):
     def __init__(self, app, hide_hpaned=False):
         """ initialize """
         gtk.Notebook.__init__(self)
