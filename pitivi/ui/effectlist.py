@@ -250,6 +250,8 @@ class EffectList(gtk.VBox, Loggable):
             for categorie in self.app.effects.audio_categories:
                 self.effectCategory.append_text(categorie)
 
+        if self.treeview_menuitem.get_active() == False:
+            self.effect_view = SHOW_ICONVIEW
         self._displayEffectView()
         self.effectCategory.set_active(0)
 
