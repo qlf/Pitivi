@@ -141,7 +141,7 @@ class SmartVideomixerBin(gst.Bin):
         self.inputs = {} # key : pad_name,
                          # value : (sinkpad, ffmpegcolorspace, capsfilter, videomixerpad)
 
-        self.alpha_helper = SmartVideomixerBinPropertyHelper(track, self.inputs)
+        #self.alpha_helper = SmartVideomixerBinPropertyHelper(track, self.inputs)
 
     def update_priority(self, pad, priority):
         self.debug("pad:%r, priority:%d" % ( pad, priority))
@@ -162,10 +162,10 @@ class SmartVideomixerBin(gst.Bin):
         csp = gst.element_factory_make("ffmpegcolorspace", "csp-%d" % self.pad_count)
         capsfilter = gst.element_factory_make("capsfilter", "capsfilter-%d" % self.pad_count)
         # configure the capsfilter caps
-        if self.alpha_helper.alpha_count != 0:
-            capsfilter.props.caps = gst.Caps('video/x-raw-yuv,format=(fourcc)AYUV')
-        else:
-            capsfilter.props.caps = gst.Caps('video/x-raw-yuv')
+        #if self.alpha_helper.alpha_count != 0:
+        capsfilter.props.caps = gst.Caps('video/x-raw-yuv,format=(fourcc)AYUV')
+        #else:
+        #capsfilter.props.caps = gst.Caps('video/x-raw-yuv')
 
         self.add(csp, capsfilter)
 
